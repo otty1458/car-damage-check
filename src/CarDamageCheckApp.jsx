@@ -7,7 +7,7 @@ const Button = ({ children, ...props }) => (
 );
 
 export default function CarDamageCheckApp() {
-  const [selectedCar, setSelectedCar] = useState("A号車");
+  const [selectedCar, setSelectedCar] = useState("1号車");
   const [damageData, setDamageData] = useState(() => {
     const saved = localStorage.getItem("damageRecords");
     return saved ? JSON.parse(saved) : {};
@@ -16,17 +16,25 @@ export default function CarDamageCheckApp() {
   const [photo, setPhoto] = useState(null);
   const [popup, setPopup] = useState(null);
 
-  const handleImageClick = (e) => {
+  const handleImageClick = async (e) => {
     const rect = e.target.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     if (!photo) return alert("先に写真を選択してください。");
 
+    const timestamp = new Date().toLocaleString();
+    const uploader = prompt("記録者の名前を入力してください");
+
+    // Google Driveアップロード（簡略化、実装にはバックエンドが必要）
+    const uploadedUrl = await uploadToDrive(photo);
+
     const newEntry = {
       x,
       y,
       note,
-      photo,
+      photoUrl: uploadedUrl,
+      timestamp,
+      uploader,
     };
 
     const updated = {
@@ -37,6 +45,8 @@ export default function CarDamageCheckApp() {
     localStorage.setItem("damageRecords", JSON.stringify(updated));
     setNote("");
     setPhoto(null);
+
+    notifySlack(newEntry, selectedCar);
   };
 
   const handlePhotoUpload = (file) => {
@@ -61,6 +71,19 @@ export default function CarDamageCheckApp() {
 
   const closePopup = () => setPopup(null);
 
+  // Google Drive アップロード（本実装にはAPIトークンとバックエンドが必要）
+  const uploadToDrive = async (imageDataUrl) => {
+    alert("※実際のGoogle Driveアップロードはサーバーが必要です。");
+    return imageDataUrl; // モック
+  };
+
+  // Slack 通知
+  const notifySlack = (entry, carId) => {
+    const message = `📢 ${carId}に傷記録が追加されました\n\n記録者: ${entry.uploader}\n日時: ${entry.timestamp}\nメモ: ${entry.note}`;
+    console.log("Slack通知:", message);
+    // 実際には fetch("https://hooks.slack.com/services/...", { method: POST ... }) で送信
+  };
+
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-2xl font-bold">車両傷記録アプリ</h1>
@@ -72,9 +95,9 @@ export default function CarDamageCheckApp() {
           onChange={(e) => setSelectedCar(e.target.value)}
           className="border p-2 rounded"
         >
-          <option>A号車</option>
-          <option>B号車</option>
-          <option>C号車</option>
+          {Array.from({ length: 25 }).map((_, i) => (
+            <option key={i + 1}>{`${i + 1}号車`}</option>
+          ))}
         </select>
       </div>
 
@@ -88,15 +111,18 @@ export default function CarDamageCheckApp() {
         {(damageData[selectedCar] || []).map((entry, i) => (
           <div
             key={i}
-            className="absolute w-4 h-4 bg-red-500 rounded-full cursor-pointer"
+            className="absolute w-4 h-4 bg-red-500 rounded-full cursor-pointer text-[8px] text-white text-center"
             style={{
               top: `${entry.y}%`,
               left: `${entry.x}%`,
               transform: "translate(-50%, -50%)",
+              lineHeight: "16px",
             }}
             onClick={() => handleMarkerClick(entry)}
-            title={entry.note}
-          ></div>
+            title={`${entry.timestamp} ${entry.uploader}`}
+          >
+            !
+          </div>
         ))}
 
         {popup && (
@@ -109,8 +135,10 @@ export default function CarDamageCheckApp() {
               maxWidth: "200px",
             }}
           >
-            <img src={popup.photo} alt="damage" className="w-full mb-2" />
-            <p className="text-sm">{popup.note}</p>
+            <img src={popup.photoUrl} alt="damage" className="w-full mb-2" />
+            <p className="text-sm">📅 {popup.timestamp}</p>
+            <p className="text-sm">👤 {popup.uploader}</p>
+            <p className="text-sm">📝 {popup.note}</p>
             <button
               onClick={closePopup}
               className="mt-1 text-xs text-blue-500 underline"
