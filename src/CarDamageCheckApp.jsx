@@ -7,111 +7,139 @@ const Button = ({ children, ...props }) => (
 );
 
 export default function CarDamageCheckApp() {
-  const [selectedPart, setSelectedPart] = useState(null);
-  const [formData, setFormData] = useState({
-    フロント: { photo: null },
-    左側: { photo: null },
-    右側: { photo: null },
-    リア: { photo: null },
-    天井: { photo: null },
-    ボンネット: { photo: null }
+  const [selectedCar, setSelectedCar] = useState("A号車");
+  const [damageData, setDamageData] = useState(() => {
+    const saved = localStorage.getItem("damageRecords");
+    return saved ? JSON.parse(saved) : {};
   });
+  const [note, setNote] = useState("");
+  const [photo, setPhoto] = useState(null);
+  const [popup, setPopup] = useState(null);
 
-  const handlePartClick = (part) => {
-    setSelectedPart((prev) => (prev === part ? null : part));
+  const handleImageClick = (e) => {
+    const rect = e.target.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    if (!photo) return alert("先に写真を選択してください。");
+
+    const newEntry = {
+      x,
+      y,
+      note,
+      photo,
+    };
+
+    const updated = {
+      ...damageData,
+      [selectedCar]: [...(damageData[selectedCar] || []), newEntry],
+    };
+    setDamageData(updated);
+    localStorage.setItem("damageRecords", JSON.stringify(updated));
+    setNote("");
+    setPhoto(null);
   };
 
-  const handlePhotoUpload = (part, file) => {
+  const handlePhotoUpload = (file) => {
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({
-        ...prev,
-        [part]: { photo: reader.result },
-      }));
-    };
+    reader.onloadend = () => setPhoto(reader.result);
     reader.readAsDataURL(file);
   };
 
   const exportToPDF = () => {
-    const input = document.getElementById("car-diagram");
+    const input = document.getElementById("car-area");
     html2canvas(input).then((canvas) => {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF();
-      pdf.addImage(imgData, "PNG", 10, 10);
-      pdf.save("damage-map.pdf");
+      pdf.addImage(imgData, "PNG", 10, 10, 190, 0);
+      pdf.save(`${selectedCar}_damage.pdf`);
     });
   };
 
-  const exportToPNG = () => {
-    const input = document.getElementById("car-diagram");
-    html2canvas(input).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.download = "damage-map.png";
-      link.href = imgData;
-      link.click();
-    });
+  const handleMarkerClick = (entry) => {
+    setPopup(entry);
   };
 
-  const uploadToGoogleDrive = async () => {
-    alert("Google Driveへの保存は未実装です。");
-  };
+  const closePopup = () => setPopup(null);
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">アルファード展開図 - 傷箇所表示</h1>
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-1">
-          <div id="car-diagram" className="relative inline-block">
-            <img src="/car-top-view.png" alt="car" className="w-full max-w-md" />
-            {Object.keys(formData).map((part, i) => (
-              <div
-                key={part}
-                className="absolute border-2 border-transparent active:border-blue-400 cursor-pointer"
-                style={{
-                  top: `${10 + i * 10}%`,
-                  left: `${10 + i * 5}%`,
-                  width: "50px",
-                  height: "50px",
-                  zIndex: 10,
-                }}
-                onClick={() => handlePartClick(part)}
-              >
-                {selectedPart === part && formData[part].photo && (
-                  <img
-                    src={formData[part].photo}
-                    alt="傷画像"
-                    className="absolute top-0 left-0 w-24 border border-red-500 rounded bg-white shadow-lg"
-                    style={{ zIndex: 20 }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 space-x-2">
-            <Button onClick={exportToPDF}>PDFで保存</Button>
-            <Button onClick={exportToPNG}>PNGで保存</Button>
-            <Button onClick={uploadToGoogleDrive}>Google Driveへ保存</Button>
-          </div>
-        </div>
-        {selectedPart && (
-          <div className="flex-1 border p-4 rounded shadow">
-            <h2 className="text-xl font-semibold mb-2">{selectedPart}</h2>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handlePhotoUpload(selectedPart, e.target.files[0])}
-              className="mb-2"
-            />
-            {formData[selectedPart].photo && (
-              <img
-                src={formData[selectedPart].photo}
-                alt="傷画像"
-                className="w-full max-w-xs border rounded"
-              />
-            )}
+    <div className="p-4 space-y-4">
+      <h1 className="text-2xl font-bold">車両傷記録アプリ</h1>
+
+      <div className="space-x-2">
+        <label>号車選択：</label>
+        <select
+          value={selectedCar}
+          onChange={(e) => setSelectedCar(e.target.value)}
+          className="border p-2 rounded"
+        >
+          <option>A号車</option>
+          <option>B号車</option>
+          <option>C号車</option>
+        </select>
+      </div>
+
+      <div id="car-area" className="relative w-full max-w-lg">
+        <img
+          src="/car-top-view.png"
+          alt="car"
+          className="w-full border rounded"
+          onClick={handleImageClick}
+        />
+        {(damageData[selectedCar] || []).map((entry, i) => (
+          <div
+            key={i}
+            className="absolute w-4 h-4 bg-red-500 rounded-full cursor-pointer"
+            style={{
+              top: `${entry.y}%`,
+              left: `${entry.x}%`,
+              transform: "translate(-50%, -50%)",
+            }}
+            onClick={() => handleMarkerClick(entry)}
+            title={entry.note}
+          ></div>
+        ))}
+
+        {popup && (
+          <div
+            className="absolute z-10 bg-white border rounded p-2 shadow"
+            style={{
+              top: `${popup.y}%`,
+              left: `${popup.x}%`,
+              transform: "translate(-50%, -110%)",
+              maxWidth: "200px",
+            }}
+          >
+            <img src={popup.photo} alt="damage" className="w-full mb-2" />
+            <p className="text-sm">{popup.note}</p>
+            <button
+              onClick={closePopup}
+              className="mt-1 text-xs text-blue-500 underline"
+            >
+              閉じる
+            </button>
           </div>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => handlePhotoUpload(e.target.files[0])}
+        />
+        <textarea
+          placeholder="メモを入力"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="w-full border p-2 rounded"
+        />
+        {photo && (
+          <img src={photo} alt="preview" className="w-32 border rounded" />
+        )}
+      </div>
+
+      <div className="pt-4">
+        <Button onClick={exportToPDF}>PDFで保存</Button>
       </div>
     </div>
   );
