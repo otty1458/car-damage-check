@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -15,6 +15,10 @@ export default function CarDamageCheckApp() {
   const [note, setNote] = useState("");
   const [photo, setPhoto] = useState(null);
   const [popup, setPopup] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem("damageRecords", JSON.stringify(damageData));
+  }, [damageData]);
 
   const handleImageClick = async (e) => {
     const rect = e.target.getBoundingClientRect();
@@ -38,7 +42,6 @@ export default function CarDamageCheckApp() {
       [selectedCar]: [...(damageData[selectedCar] || []), newEntry],
     };
     setDamageData(updated);
-    localStorage.setItem("damageRecords", JSON.stringify(updated));
     setNote("");
     setPhoto(null);
 
