@@ -43,6 +43,7 @@ export default function CarDamageCheckApp() {
     setPhoto(null);
 
     notifySlack(newEntry, selectedCar);
+    sendToSpreadsheet(newEntry, selectedCar);
   };
 
   const handlePhotoUpload = (file) => {
@@ -75,6 +76,31 @@ export default function CarDamageCheckApp() {
   const notifySlack = (entry, carId) => {
     const message = `📢 ${carId}に傷記録が追加されました\n\n記録者: ${entry.uploader}\n日時: ${entry.timestamp}\nメモ: ${entry.note}`;
     console.log("Slack通知:", message);
+  };
+
+  const sendToSpreadsheet = async (entry, carId) => {
+    const sheetUrl = "https://script.google.com/macros/s/AKfycbw8aNkm_KKTVBRj92MRawb6OJM_6xAfI69Y8VyFmchlMOmBLC3BZD5OFOq7TJSAw5gGjg/exec";
+
+    try {
+      await fetch(sheetUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          carId,
+          x: entry.x,
+          y: entry.y,
+          note: entry.note,
+          photoUrl: entry.photoUrl,
+          timestamp: entry.timestamp,
+          uploader: entry.uploader,
+        }),
+      });
+      console.log("📋 スプレッドシートに送信成功");
+    } catch (error) {
+      console.error("❌ スプレッドシート送信エラー", error);
+    }
   };
 
   return (
