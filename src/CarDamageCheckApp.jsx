@@ -20,19 +20,15 @@ export default function CarDamageCheckApp() {
     const rect = e.target.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    if (!photo) return alert("先に写真を選択してください。");
 
     const timestamp = new Date().toLocaleString();
-    const uploader = prompt("記録者の名前を入力してください");
-    if (!uploader) return;
-
-    const uploadedUrl = await uploadToDrive(photo);
+    const uploader = "テストユーザー";
 
     const newEntry = {
       x,
       y,
-      note,
-      photoUrl: uploadedUrl,
+      note: note || "テストメモ",
+      photoUrl: photo || "https://via.placeholder.com/150",
       timestamp,
       uploader,
     };
