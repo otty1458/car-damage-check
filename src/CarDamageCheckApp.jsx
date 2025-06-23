@@ -78,7 +78,7 @@ export default function CarDamageCheckApp() {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 flex flex-col items-center">
       <h1 className="text-2xl font-bold">車両傷記録アプリ</h1>
 
       <div className="space-x-2">
@@ -141,7 +141,7 @@ export default function CarDamageCheckApp() {
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 w-full max-w-lg">
         <input
           type="file"
           accept="image/*"
