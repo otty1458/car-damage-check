@@ -24,8 +24,8 @@ export default function CarDamageCheckApp() {
 
     const timestamp = new Date().toLocaleString();
     const uploader = prompt("記録者の名前を入力してください");
+    if (!uploader) return;
 
-    // Google Driveアップロード（簡略化、実装にはバックエンドが必要）
     const uploadedUrl = await uploadToDrive(photo);
 
     const newEntry = {
@@ -71,17 +71,14 @@ export default function CarDamageCheckApp() {
 
   const closePopup = () => setPopup(null);
 
-  // Google Drive アップロード（本実装にはAPIトークンとバックエンドが必要）
   const uploadToDrive = async (imageDataUrl) => {
     alert("※実際のGoogle Driveアップロードはサーバーが必要です。");
-    return imageDataUrl; // モック
+    return imageDataUrl;
   };
 
-  // Slack 通知
   const notifySlack = (entry, carId) => {
     const message = `📢 ${carId}に傷記録が追加されました\n\n記録者: ${entry.uploader}\n日時: ${entry.timestamp}\nメモ: ${entry.note}`;
     console.log("Slack通知:", message);
-    // 実際には fetch("https://hooks.slack.com/services/...", { method: POST ... }) で送信
   };
 
   return (
@@ -111,15 +108,14 @@ export default function CarDamageCheckApp() {
         {(damageData[selectedCar] || []).map((entry, i) => (
           <div
             key={i}
-            className="absolute w-4 h-4 bg-red-500 rounded-full cursor-pointer text-[8px] text-white text-center"
+            className="absolute w-6 h-6 bg-red-600 text-[10px] rounded-full text-white flex items-center justify-center cursor-pointer"
             style={{
               top: `${entry.y}%`,
               left: `${entry.x}%`,
               transform: "translate(-50%, -50%)",
-              lineHeight: "16px",
             }}
-            onClick={() => handleMarkerClick(entry)}
             title={`${entry.timestamp} ${entry.uploader}`}
+            onClick={() => handleMarkerClick(entry)}
           >
             !
           </div>
@@ -135,7 +131,7 @@ export default function CarDamageCheckApp() {
               maxWidth: "200px",
             }}
           >
-            <img src={popup.photoUrl} alt="damage" className="w-full mb-2" />
+            <img src={popup.photoUrl} alt="damage" className="w-full mb-2 rounded" />
             <p className="text-sm">📅 {popup.timestamp}</p>
             <p className="text-sm">👤 {popup.uploader}</p>
             <p className="text-sm">📝 {popup.note}</p>
